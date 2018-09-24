@@ -12,12 +12,12 @@ def Specs(**kwargs):
 
 SPECS = Specs(
     width=40.,
-    length=96.,
+    length=99.,
     pedestal_inset=16.,
-    pedestal_width=12.,
+    pedestal_width=10.,
     pedestal_thickness=3.,
-    pedestal_gap=0.5
-) 
+    pedestal_gap=1.0
+)
 
 def _move(shape, x, y, z):
     tr = gp.gp_Trsf()
