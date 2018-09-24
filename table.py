@@ -4,6 +4,8 @@ from OCC.Display.SimpleGui import init_display
 from OCC.TopoDS import TopoDS_Builder, TopoDS_Compound
 from OCC.BRepPrimAPI import BRepPrimAPI_MakeBox
 
+from OCC.STEPControl import STEPControl_Writer, STEPControl_AsIs 
+
 TABLE_THICKNESS = 1.5
 PEDESTAL_HEIGHT = 28.5
 
@@ -31,7 +33,9 @@ def _make_table():
     builder = TopoDS_Builder()
     compound = TopoDS_Compound()
     builder.MakeCompound(compound)
-    builder.Add(compound, _box(SPECS.length, SPECS.width, TABLE_THICKNESS))
+    table_top = _box(SPECS.length, SPECS.width, TABLE_THICKNESS)
+    _move(table_top, 0, 0, PEDESTAL_HEIGHT)
+    builder.Add(compound, table_top)
     for i in range(4):
         pedestal = _box(SPECS.pedestal_thickness, SPECS.pedestal_width, PEDESTAL_HEIGHT)
         if i < 2:
@@ -42,14 +46,19 @@ def _make_table():
             y = (SPECS.width + SPECS.pedestal_gap) / 2
         else:
             y = (SPECS.width - SPECS.pedestal_gap) / 2 - SPECS.pedestal_width
-        _move(pedestal, x, y, TABLE_THICKNESS)
+        _move(pedestal, x, y, 0.)
         builder.Add(compound, pedestal)
     return compound
 
-
+def _write_step(table):
+    step_writer = STEPControl_Writer()
+    step_writer.Transfer(table, STEPControl_AsIs)
+    status = step_writer.Write("table.stp")
 
 
 table = _make_table()
+
+# _write_step(table)
 
 display, start_display, _, _ = init_display()
 display.DisplayShape(table, update=True)
