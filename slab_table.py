@@ -16,11 +16,13 @@ def Specs(**kwargs):
 SPECS = Specs(
     width=42.,
     length=95.,
-    leg_width_inset=8., # distance from log edge to edge of leg
+    leg_width_inset=10., # distance from long edge to edge of leg
     leg_length_inset=24., # distance from short edge to center of leg
     leg_base_width_over=3.,
     leg_base_length_over=1.5,
-    split_top=True
+    split_top=False,
+    bench_width=15.,
+    bench_leg_inset=12.
 )
 
 def _move(shape, x, y, z):
@@ -48,7 +50,7 @@ def _make_table_leg():
     leg = _box(
         THICKNESS,
         SPECS.width - SPECS.leg_width_inset * 2,
-        HEIGHT - THICKNESS * 3)
+        HEIGHT - THICKNESS * 2)
     _move(leg,
           SPECS.leg_base_length_over,
           SPECS.leg_base_width_over,
@@ -89,8 +91,26 @@ def _make_table():
           THICKNESS)
     return _combine(top, leg_0, leg_1, spanner)
 
+def _make_bench():
+    top = _box(SPECS.length, SPECS.bench_width, THICKNESS)
+    leg_0 = _box(THICKNESS, SPECS.bench_width, BENCH_HEIGHT - THICKNESS)
+    leg_1 = _box(THICKNESS, SPECS.bench_width, BENCH_HEIGHT - THICKNESS)
+    spanner = _box(
+        SPECS.length - SPECS.bench_leg_inset * 2 - THICKNESS * 2,
+        THICKNESS, 6.)
+    _move(spanner,
+          SPECS.bench_leg_inset + THICKNESS,
+          SPECS.bench_width / 2 - THICKNESS / 2,
+          THICKNESS)
+    _move(leg_0, SPECS.bench_leg_inset, 0, THICKNESS)
+    _move(leg_1, SPECS.length - SPECS.bench_leg_inset - THICKNESS, 0, THICKNESS)
+    return _combine(top, leg_0, leg_1, spanner)
+
 table = _make_table()
+bench = _make_bench()
+_move(bench, 0, SPECS.width - 2, HEIGHT - BENCH_HEIGHT)
+whole_thing = _combine(table, bench)
 
 display, start_display, _, _ = init_display()
-display.DisplayShape(table, update=True)
+display.DisplayShape(whole_thing, update=True)
 start_display()
