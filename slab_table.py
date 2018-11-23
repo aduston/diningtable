@@ -1,6 +1,12 @@
+import sys
+import os.path
+
+import inspect
+
 from collections import namedtuple
 from OCC import gp, TopLoc
 from OCC.Display.SimpleGui import init_display
+from OCC.Display.WebGl import threejs_renderer
 from OCC.TopoDS import TopoDS_Builder, TopoDS_Compound
 from OCC.BRepPrimAPI import BRepPrimAPI_MakeBox
 
@@ -30,6 +36,7 @@ def _move(shape, x, y, z):
     tr.SetTranslation(gp.gp_Vec(x, y, z))
     loc = TopLoc.TopLoc_Location(tr)
     shape.Move(loc)
+    return shape
 
 _box = lambda *args: BRepPrimAPI_MakeBox(*args).Shape()
 
@@ -54,18 +61,21 @@ def _make_table_leg():
     _move(leg,
           SPECS.leg_base_length_over,
           SPECS.leg_base_width_over,
-          THICKNESS)
+          0)
+    _move(leg_base, 0, 0, HEIGHT - THICKNESS * 2)
     return _combine(leg_base, leg)
 
 def _make_table_top():
+    top = None
     if SPECS.split_top:
         SPLIT = 0.5
         side_0 = _box(SPECS.length, SPECS.width / 2 - SPLIT / 2, THICKNESS)
         side_1 = _box(SPECS.length, SPECS.width / 2 - SPLIT / 2, THICKNESS)
         _move(side_1, 0, SPECS.width / 2 + SPLIT / 2, 0)
-        return _combine(side_0, side_1)
+        top = _combine(side_0, side_1)
     else:
-        return _box(SPECS.length, SPECS.width, THICKNESS)
+        top = _box(SPECS.length, SPECS.width, THICKNESS)
+    return _move(top, 0, 0, HEIGHT - THICKNESS)
 
 def _make_table():
     top = _make_table_top()
@@ -78,17 +88,17 @@ def _make_table():
     _move(spanner,
           SPECS.leg_length_inset + THICKNESS / 2,
           SPECS.width / 2 - THICKNESS / 2,
-          THICKNESS * 2)
+          HEIGHT - THICKNESS * 2 - 6.)
     leg_base_inset = SPECS.leg_length_inset - THICKNESS / 2 - \
         SPECS.leg_base_length_over
     _move(leg_0,
           leg_base_inset,
           SPECS.leg_width_inset - SPECS.leg_base_width_over,
-          THICKNESS)
+          0)
     _move(leg_1,
           SPECS.length - leg_base_inset - THICKNESS - SPECS.leg_base_length_over * 2,
           SPECS.leg_width_inset - SPECS.leg_base_width_over,
-          THICKNESS)
+          0)
     return _combine(top, leg_0, leg_1, spanner)
 
 def _make_bench():
@@ -101,16 +111,24 @@ def _make_bench():
     _move(spanner,
           SPECS.bench_leg_inset + THICKNESS,
           SPECS.bench_width / 2 - THICKNESS / 2,
-          THICKNESS)
-    _move(leg_0, SPECS.bench_leg_inset, 0, THICKNESS)
-    _move(leg_1, SPECS.length - SPECS.bench_leg_inset - THICKNESS, 0, THICKNESS)
+          BENCH_HEIGHT - THICKNESS - 6.)
+    _move(leg_0, SPECS.bench_leg_inset, 0, 0)
+    _move(leg_1, SPECS.length - SPECS.bench_leg_inset - THICKNESS, 0, 0)
+    _move(top, 0, 0, BENCH_HEIGHT - THICKNESS)
     return _combine(top, leg_0, leg_1, spanner)
+
 
 table = _make_table()
 bench = _make_bench()
-_move(bench, 0, SPECS.width - 2, HEIGHT - BENCH_HEIGHT)
+_move(bench, 0, SPECS.width - 2, 0)
 whole_thing = _combine(table, bench)
 
-display, start_display, _, _ = init_display()
-display.DisplayShape(whole_thing, update=True)
-start_display()
+if len(sys.argv) > 1 and sys.argv[1] == 'html':
+    html_dir = os.path.join(os.path.dirname(__file__), 'html')
+    renderer = threejs_renderer.ThreejsRenderer(html_dir)
+    renderer.DisplayShape(whole_thing)
+    renderer.GenerateHTMLFile()
+else:
+    display, start_display, _, _ = init_display()
+    display.DisplayShape(whole_thing, update=True)
+    start_display()
