@@ -1,10 +1,9 @@
 import sys
 import os.path
 
-import inspect
-
 from collections import namedtuple
 from OCC import gp, TopLoc
+from OCC.Visualization import Tesselator
 from OCC.Display.SimpleGui import init_display
 from OCC.Display.WebGl import threejs_renderer
 from OCC.TopoDS import TopoDS_Builder, TopoDS_Compound
@@ -123,11 +122,16 @@ bench = _make_bench()
 _move(bench, 0, SPECS.width - 2, 0)
 whole_thing = _combine(table, bench)
 
-if len(sys.argv) > 1 and sys.argv[1] == 'html':
+if len(sys.argv) > 1:
     html_dir = os.path.join(os.path.dirname(__file__), 'html')
-    renderer = threejs_renderer.ThreejsRenderer(html_dir)
-    renderer.DisplayShape(whole_thing)
-    renderer.GenerateHTMLFile()
+    if sys.argv[1] == 'html':
+        renderer = threejs_renderer.ThreejsRenderer(html_dir)
+        renderer.GenerateHTMLFile()
+    elif sys.argv[1] == 'js':
+        tess = Tesselator(whole_thing)
+        tess.Compute(compute_edges=False, mesh_quality=1.)
+        with open(os.path.join(html_dir, "table.json"), 'w') as f:
+            f.write(tess.ExportShapeToThreejsJSONString('table'))
 else:
     display, start_display, _, _ = init_display()
     display.DisplayShape(whole_thing, update=True)
