@@ -80,7 +80,7 @@ def _make_table():
           SPECS.width / 2 - THICKNESS / 2,
           THICKNESS * 2)
     leg_base_inset = SPECS.leg_length_inset - THICKNESS / 2 - \
-        SPECS.leg_base_length_over / 2
+        SPECS.leg_base_length_over
     _move(leg_0,
           leg_base_inset,
           SPECS.leg_width_inset - SPECS.leg_base_width_over,
