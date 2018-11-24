@@ -16,8 +16,32 @@ var selected_target_color_g = 0;
 var selected_target_color_b = 0;
 var selected_target = null;
 
+var PIECES = {"table": {"top": [95.0, 42.0], "legs (2)": [27.0, 22.0], "leg bases (2)": [28.0, 4.5], "spanner": [45.5, 6.0]}, "bench": {"top": [95.0, 15.0], "spanner": [68.0, 6.0], "legs (2)": [16.5, 15.0]}};
+
 init();
 animate();
+
+function piecesDiv() {
+	var pieces = document.createElement('div');
+	for (var thingName in PIECES) {
+		var thingH1 = document.createElement('h1');
+		thingH1.innerText = thingName;
+		pieces.appendChild(thingH1);
+		var thing = PIECES[thingName];
+		var ul = document.createElement('ul');
+		for (var pieceName in thing) {
+			var piece = thing[pieceName];
+			var li = document.createElement('li');
+			li.innerText = pieceName + ": " + piece[0] + " x " + piece[1];
+			ul.appendChild(li);
+		}
+		pieces.appendChild(ul);
+	}
+	pieces.style.position = 'absolute';
+	pieces.style.top = '12';
+	pieces.style.left = '12';
+	return pieces;
+}
 
 function init() {
   container = document.createElement('div');
@@ -28,6 +52,8 @@ function init() {
   controls = new THREE.OrbitControls(camera);
 	camera.position.set(0, -100, 0);
 	controls.update();
+
+	container.appendChild(piecesDiv());
 
   // for selection
   raycaster = new THREE.Raycaster();

@@ -1,5 +1,7 @@
 import sys
+import re
 import os.path
+import json
 
 from collections import namedtuple
 from OCC import gp, TopLoc
@@ -14,6 +16,7 @@ from OCC.STEPControl import STEPControl_Writer, STEPControl_AsIs
 THICKNESS = 1.5
 HEIGHT = 30
 BENCH_HEIGHT = 18
+SPANNER_HEIGHT = 6.
 
 def Specs(**kwargs):
     return namedtuple('Specs', ' '.join(kwargs.keys()))(**kwargs)
@@ -83,11 +86,11 @@ def _make_table():
     spanner = _box(
         SPECS.length - SPECS.leg_length_inset * 2 - THICKNESS,
         THICKNESS,
-        6.)
+        SPANNER_HEIGHT)
     _move(spanner,
           SPECS.leg_length_inset + THICKNESS / 2,
           SPECS.width / 2 - THICKNESS / 2,
-          HEIGHT - THICKNESS * 2 - 6.)
+          HEIGHT - THICKNESS * 2 - SPANNER_HEIGHT)
     leg_base_inset = SPECS.leg_length_inset - THICKNESS / 2 - \
         SPECS.leg_base_length_over
     _move(leg_0,
@@ -95,7 +98,8 @@ def _make_table():
           SPECS.leg_width_inset - SPECS.leg_base_width_over,
           0)
     _move(leg_1,
-          SPECS.length - leg_base_inset - THICKNESS - SPECS.leg_base_length_over * 2,
+          SPECS.length - leg_base_inset - THICKNESS -
+          SPECS.leg_base_length_over * 2,
           SPECS.leg_width_inset - SPECS.leg_base_width_over,
           0)
     return _combine(top, leg_0, leg_1, spanner)
@@ -106,16 +110,57 @@ def _make_bench():
     leg_1 = _box(THICKNESS, SPECS.bench_width, BENCH_HEIGHT - THICKNESS)
     spanner = _box(
         SPECS.length - SPECS.bench_leg_inset * 2 - THICKNESS * 2,
-        THICKNESS, 6.)
+        THICKNESS, SPANNER_HEIGHT)
     _move(spanner,
           SPECS.bench_leg_inset + THICKNESS,
           SPECS.bench_width / 2 - THICKNESS / 2,
-          BENCH_HEIGHT - THICKNESS - 6.)
+          BENCH_HEIGHT - THICKNESS - SPANNER_HEIGHT)
     _move(leg_0, SPECS.bench_leg_inset, 0, 0)
     _move(leg_1, SPECS.length - SPECS.bench_leg_inset - THICKNESS, 0, 0)
     _move(top, 0, 0, BENCH_HEIGHT - THICKNESS)
     return _combine(top, leg_0, leg_1, spanner)
 
+def _write_threejs_json(html_dir, shape):
+    tess = Tesselator(shape)
+    tess.Compute(compute_edges=False, mesh_quality=1.)
+    with open(os.path.join(html_dir, "table.json"), 'w') as f:
+        f.write(tess.ExportShapeToThreejsJSONString('table'))
+
+def _write_pieces_json(html_dir):
+    bench_pieces = {
+        'top': [SPECS.length, SPECS.bench_width],
+        'spanner': [
+            SPECS.length - (SPECS.bench_leg_inset + THICKNESS) * 2,
+            SPANNER_HEIGHT],
+        'legs (2)': [BENCH_HEIGHT - THICKNESS, SPECS.bench_width]
+    }
+    table_pieces = {
+        'top': [SPECS.length, SPECS.width],
+        'legs (2)': [
+            HEIGHT - THICKNESS * 2,
+            SPECS.width - SPECS.leg_width_inset * 2],
+        'leg bases (2)': [
+            SPECS.width - SPECS.leg_width_inset * 2 +
+            SPECS.leg_base_width_over * 2,
+            THICKNESS + SPECS.leg_base_length_over * 2
+        ],
+        'spanner': [SPECS.length - SPECS.leg_length_inset * 2 - THICKNESS,
+                    SPANNER_HEIGHT]
+    }
+    json_string = json.dumps({
+        'table': table_pieces,
+        'bench': bench_pieces
+    })
+    index_js_fn = os.path.join(html_dir, 'index.js')
+    with open(index_js_fn, 'r') as f:
+        index_js = f.read()
+    index_js = re.sub(
+        r'var PIECES = [^;]+;',
+        "var PIECES = {};".format(json_string),
+        index_js,
+        count=1)
+    with open(index_js_fn, 'w') as f:
+        f.write(index_js)
 
 table = _make_table()
 bench = _make_bench()
@@ -124,10 +169,8 @@ whole_thing = _combine(table, bench)
 
 if len(sys.argv) > 1 and sys.argv[1] == 'json':
     html_dir = os.path.join(os.path.dirname(__file__), 'html')
-    tess = Tesselator(whole_thing)
-    tess.Compute(compute_edges=False, mesh_quality=1.)
-    with open(os.path.join(html_dir, "table.json"), 'w') as f:
-        f.write(tess.ExportShapeToThreejsJSONString('table'))
+    _write_threejs_json(html_dir, whole_thing)
+    _write_pieces_json(html_dir)
 else:
     display, start_display, _, _ = init_display()
     display.DisplayShape(whole_thing, update=True)
