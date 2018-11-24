@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "aad-personal"
+  },
+  "targets": {
+    "aad-personal": {
+      "hosting": {
+        "adamduston": [
+          "adamduston"
+        ]
+      }
+    }
+  }
+}
