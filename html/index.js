@@ -92,7 +92,7 @@ function init() {
 
   // add events
   document.addEventListener('keypress', onDocumentKeyPress, false);
-  document.addEventListener('click', onDocumentMouseClick, false);
+  // document.addEventListener('click', onDocumentMouseClick, false);
   window.addEventListener('resize', onWindowResize, false);
 }
 
